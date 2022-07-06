@@ -1,13 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 import stream from 'stream';
+import { promisify } from 'util';
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
+import MessageValidator from 'sns-validator';
 import fetch from 'node-fetch';
 import unzipper from 'unzipper';
 import { ChannelMessage } from './model';
 
 export const app = express();
+
+const validator = new MessageValidator();
 
 const snsMessageTypeHandlers = {
     SubscriptionConfirmation: handleSubscriptionConfirmation,
@@ -22,7 +26,7 @@ app.use(bodyParser.json({ type: 'text/plain' }));
  * Handles both subscription confirmation requests and publish notification messages
  */
 app.post('/', async function (req: Request, res: Response) {
-    if (!validateSnsRequest(req, res)) {
+    if (!(await isValidSnsRequest(req, res))) {
         return;
     }
     const messageType = req.headers['x-amz-sns-message-type'] as keyof typeof snsMessageTypeHandlers;
@@ -33,7 +37,7 @@ app.post('/', async function (req: Request, res: Response) {
  * Validate that we received a correct AWS SNS request, either trying
  * to confirm the subscription or to send a notification.
  */
-function validateSnsRequest(req: Request, res: Response) {
+async function isValidSnsRequest(req: Request, res: Response) {
     const type = req.headers['x-amz-sns-message-type'];
     if (!type) {
         res.status(400).send('Header "x-amz-sns-message-type" not set');
@@ -52,6 +56,12 @@ function validateSnsRequest(req: Request, res: Response) {
             res.status(400).send('Expect SubscribeURL to be set in request body.');
             return false;
         }
+    }
+    try {
+        await promisify(validator.validate).call(validator, req.body);
+    } catch (e) {
+        res.status(400).send('Failed to validate the SNS message signature.');
+        return false;
     }
     return true;
 }
@@ -95,7 +105,7 @@ async function downloadFiles(snsNotification: any) {
 }
 
 /**
- *  Perform any post processing of an article rendition and upload to a destination channel platform (CMS, App, etc).
+ * Perform any post processing of an article rendition and upload to a destination channel platform (CMS, App, etc).
  */
 async function postProcess() {}
 
