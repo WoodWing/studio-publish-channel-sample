@@ -7,7 +7,7 @@ import bodyParser from 'body-parser';
 import MessageValidator from 'sns-validator';
 import fetch from 'node-fetch';
 import unzipper from 'unzipper';
-import { ChannelMessage } from './model';
+import { ChannelMessage, SNSMessage } from './model';
 
 export const app = express();
 
@@ -81,13 +81,13 @@ async function handleNotification(req: Request, res: Response) {
 /**
  * Download the SNS notification and related article files to disk
  */
-async function downloadFiles(snsNotification: any) {
-    const message: ChannelMessage = JSON.parse(snsNotification.Message);
+async function downloadFiles(snsMessage: SNSMessage) {
+    const message: ChannelMessage = JSON.parse(snsMessage.Message);
     const filesFolder = await createFilesFolder(message.name);
     await fs.promises.mkdir(filesFolder, { recursive: true });
     await fs.promises.writeFile(
         path.join(filesFolder, 'sns-publish-notification.json'),
-        JSON.stringify(snsNotification, null, 2),
+        JSON.stringify(snsMessage, null, 2),
     );
     await fs.promises.writeFile(path.join(filesFolder, 'channel-message.json'), JSON.stringify(message, null, 2));
     if (message.articleJsonUrl) {
