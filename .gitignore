@@ -1,0 +1,9 @@
+# IDEA settings
+.vscode
+.idea
+
+# Dependency directories
+node_modules/
+
+# Downloaded articles
+articles/
