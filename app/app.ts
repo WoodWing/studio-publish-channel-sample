@@ -51,11 +51,9 @@ async function isValidSnsRequest(req: Request, res: Response) {
         );
         return false;
     }
-    if (type === 'SubscriptionConfirmation') {
-        if (!req.body.SubscribeURL) {
-            res.status(400).send('Expect SubscribeURL to be set in request body.');
-            return false;
-        }
+    if (type === 'SubscriptionConfirmation' && !req.body.SubscribeURL) {
+        res.status(400).send('Expect SubscribeURL to be set in request body.');
+        return false;
     }
     try {
         await promisify(validator.validate).call(validator, req.body);
