@@ -83,7 +83,8 @@ async function handleNotification(req: Request, res: Response) {
  */
 async function downloadFiles(snsMessage: SNSMessage) {
     const message: ChannelMessage = JSON.parse(snsMessage.Message);
-    const filesFolder = await createFilesFolder(message.name);
+    const name = message.name || 'Inception BulkPublish Notification';
+    const filesFolder = await createFilesFolder(name);
     await fs.promises.mkdir(filesFolder, { recursive: true });
     await fs.promises.writeFile(
         path.join(filesFolder, 'sns-publish-notification.json'),
@@ -93,13 +94,19 @@ async function downloadFiles(snsMessage: SNSMessage) {
     if (message.articleJsonUrl) {
         await downloadFile(message.articleJsonUrl, path.join(filesFolder, 'article.json'));
     }
-    await downloadFile(message.metadataUrl, path.join(filesFolder, 'metadata.json'));
-    await downloadFile(message.componentSetInfo.url, path.join(filesFolder, 'component-set-info.json'));
-    await downloadAndUnZip(message.url, path.join(filesFolder, 'article-files-package'));
+    if (message.metadataUrl) {
+        await downloadFile(message.metadataUrl, path.join(filesFolder, 'metadata.json'));
+    }
+    if (message.componentSetInfo) {
+        await downloadFile(message.componentSetInfo.url, path.join(filesFolder, 'component-set-info.json'));
+    }
+    if (message.url) {
+        await downloadAndUnZip(message.url, path.join(filesFolder, 'article-files-package'));
+    }
     if (message.customData) {
         await downloadAndUnZip(message.customData.url, path.join(filesFolder, 'custom-data'));
     }
-    console.log(`Successfully downloaded article "${message.name}" to: ${filesFolder}`);
+    console.log(`Successfully downloaded "${name}" to: ${filesFolder}`);
 }
 
 /**
